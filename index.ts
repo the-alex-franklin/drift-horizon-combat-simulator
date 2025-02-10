@@ -17,37 +17,43 @@ type Weapon = {
 
 type Armor = {
 	name: string;
-	armorMod?: number;
 	barrierMod?: number;
+	armorMod?: number;
 	dodgeMod?: number;
 };
 
 class Combatant {
-	hp: number;
-	dodgeRating: number;
-	armorRating: number;
-	barrierRating: number;
+	name!: string;
+	stats!: Stats;
+	weapon!: Weapon;
+	armor!: Armor;
 
-	constructor(
-		public name: string,
-		public stats: Stats,
-		public weapon: Weapon,
-		public armor: Armor,
-	) {
+	hp: number;
+	barrierRating: number;
+	armorRating: number;
+	dodgeRating: number;
+
+	constructor(input: {
+		name: string;
+		stats: Stats;
+		weapon: Weapon;
+		armor: Armor;
+	}) {
+		Object.assign(this, input);
+
 		this.hp = (this.stats.constitution * 5) || 1;
-		this.dodgeRating = this.stats.agility + (this.armor.dodgeMod ?? 0);
-		this.armorRating = this.stats.strength + (this.armor.armorMod ?? 0);
 		this.barrierRating = this.stats.willpower + (this.armor.barrierMod ?? 0);
+		this.armorRating = this.stats.strength + (this.armor.armorMod ?? 0);
+		this.dodgeRating = this.stats.agility + (this.armor.dodgeMod ?? 0);
 	}
 
 	rest() {
 		this.hp = (this.stats.constitution * 5) || 1;
-		this.dodgeRating = this.stats.agility + (this.armor.dodgeMod ?? 0);
-		this.armorRating = this.stats.strength + (this.armor.armorMod ?? 0);
 		this.barrierRating = this.stats.willpower + (this.armor.barrierMod ?? 0);
+		this.armorRating = this.stats.strength + (this.armor.armorMod ?? 0);
 	}
 
-	attack(target: Combatant): true | void {
+	attack(target: Combatant): "died" | void {
 		const roll = Math.floor(Math.random() * 20);
 		if (roll < target.dodgeRating) {
 			console.log(`${target.name} dodged the attack!`);
@@ -58,7 +64,7 @@ class Combatant {
 		let damage = this.weapon.damage + (damageType === "physical" ? this.stats.strength : this.stats.intellect);
 
 		while (damage > 0) {
-			if (target.hp <= 0) return true;
+			if (target.hp <= 0) return "died";
 
 			if (damageType === "physical") {
 				if (target.armorRating > 0) {
@@ -82,63 +88,9 @@ class Combatant {
 	}
 }
 
-/* const Liara = new Combatant("Liara", {
-	strength: 1,
-	constitution: 2,
-	agility: 3,
-	cunning: 3,
-	intellect: 0,
-	willpower: 0,
-}, {
-	name: "Longbow",
-	damage: 2,
-	damageType: "physical",
-}, {
-	name: "Chainmail",
-	armorMod: 2,
-	dodgeMod: 1,
-});
-
-const gob = new Combatant("G0B-1", {
-	strength: 1,
-	constitution: 1,
-	agility: 1,
-	cunning: 1,
-	intellect: 0,
-	willpower: 0,
-}, {
-	name: "Shortsword",
-	damage: 1,
-	damageType: "physical",
-}, {
-	name: "Leather Armor",
-	armorMod: 1,
-});
-
-console.log("Before fight");
-console.log(`Liara has ${Liara.hp} HP and ${Liara.armorRating} AR`);
-console.log(`G0B-1 has ${gob.hp} HP and ${gob.armorRating} AR`);
-
-let turn_count = 0;
-while (true) {
-	turn_count++;
-	if (turn_count > 100) throw new Error("Fight not resolving");
-
-	Liara.attack(gob);
-	console.log(`Turn ${turn_count}: ${gob.name} has ${gob.hp} HP and ${gob.armorRating} AR`);
-	if (gob.hp <= 0) break;
-
-	gob.attack(Liara);
-	console.log(`Turn ${turn_count}: ${Liara.name} has ${Liara.hp} HP and ${Liara.armorRating} AR`);
-	if (Liara.hp <= 0) break;
-}
-
-const victor = Liara.hp > 0 ? Liara : gob;
-console.log(`${victor.name} wins after ${turn_count} turns!`); */
-
-const Liara = new Combatant(
-	"Liara",
-	{
+const Liara = new Combatant({
+	name: "Liara",
+	stats: {
 		strength: 1,
 		constitution: 2,
 		agility: 3,
@@ -146,21 +98,21 @@ const Liara = new Combatant(
 		intellect: 0,
 		willpower: 0,
 	},
-	{
+	weapon: {
 		name: "Longbow",
 		damage: 2,
 		damageType: "physical",
 	},
-	{
+	armor: {
 		name: "Chainmail",
 		armorMod: 2,
 		dodgeMod: 1,
 	},
-);
+});
 
-const Mira = new Combatant(
-	"Mira",
-	{
+const Mira = new Combatant({
+	name: "Mira",
+	stats: {
 		strength: 0,
 		constitution: 3,
 		agility: 2,
@@ -168,21 +120,21 @@ const Mira = new Combatant(
 		intellect: 3,
 		willpower: 1,
 	},
-	{
+	weapon: {
 		name: "Staff of Focus",
 		damage: 2,
 		damageType: "magical",
 	},
-	{
+	armor: {
 		name: "Magical Robe",
 		barrierMod: 3,
 		dodgeMod: 1,
 	},
-);
+});
 
-const Goblin1 = new Combatant(
-	"G0BL-1",
-	{
+const Goblin1 = new Combatant({
+	name: "G0BL-1",
+	stats: {
 		strength: 2,
 		constitution: 1,
 		agility: 2,
@@ -190,20 +142,20 @@ const Goblin1 = new Combatant(
 		intellect: 0,
 		willpower: 1,
 	},
-	{
+	weapon: {
 		name: "Shortsword",
 		damage: 3,
 		damageType: "physical",
 	},
-	{
+	armor: {
 		name: "Leather Armor",
 		armorMod: 2,
 	},
-);
+});
 
-const Goblin2 = new Combatant(
-	"G0BL-2",
-	{
+const Goblin2 = new Combatant({
+	name: "G0BL-2",
+	stats: {
 		strength: 1,
 		constitution: 2,
 		agility: 3,
@@ -211,17 +163,17 @@ const Goblin2 = new Combatant(
 		intellect: 4,
 		willpower: 1,
 	},
-	{
+	weapon: {
 		name: "Magic Staff",
 		damage: 2,
 		damageType: "magical",
 	},
-	{
+	armor: {
 		name: "Robe of Power",
 		barrierMod: 2,
 		dodgeMod: 1,
 	},
-);
+});
 
 function findWeakestEnemy(enemies: Combatant[], attacker_damage_type: DamageType): [Combatant, number] {
 	const enemy_hps = enemies.map((enemy) =>
@@ -231,48 +183,54 @@ function findWeakestEnemy(enemies: Combatant[], attacker_damage_type: DamageType
 	return [enemies[index]!, index];
 }
 
-function simulateCombat(team1: Combatant[], team2: Combatant[]): void {
+function shuffleArray<T>(array: T[]): T[] {
+	return array.sort(() => Math.random() - 0.5);
+}
+
+function simulateCombat({ team1, team2 }: { team1: Combatant[]; team2: Combatant[] }): void {
 	const team1_snapshot = [...team1];
 	const team2_snapshot = [...team2];
 	let turnCount = 0;
 
+	const randomizedTurnOrder = shuffleArray([...team1, ...team2]);
 	while (team1.length > 0 && team2.length > 0) {
 		turnCount++;
+		if (turnCount >= 100) throw new Error("Combat not resolving!");
 
-		// Team 1's Turn
-		for (const player of team1) {
-			const [target, index] = findWeakestEnemy(team2, player.weapon.damageType);
-			const target_died = player.attack(target);
-			if (target_died) team2.splice(index, 1);
+		for (const combatant of randomizedTurnOrder) {
+			if (team1.includes(combatant)) {
+				const [target, index] = findWeakestEnemy(team2, combatant.weapon.damageType);
+				const target_died = combatant.attack(target);
+				if (target_died) team2.splice(index, 1);
+			}
+
+			if (team2.includes(combatant)) {
+				const [target, index] = findWeakestEnemy(team1, combatant.weapon.damageType);
+				const target_died = combatant.attack(target);
+				if (target_died) team1.splice(index, 1);
+			}
 		}
-
-		// Team 2's Turn
-		for (const enemy of team2) {
-			const [target, index] = findWeakestEnemy(team1, enemy.weapon.damageType);
-			const target_died = enemy.attack(target);
-			if (target_died) team1.splice(index, 1);
-		}
 	}
 
-	if (team1.length === 0) {
-		console.log(team2_snapshot.map((x) => ({
-			name: x.name,
-			hp: x.hp,
-			barrierRating: x.barrierRating,
-			armorRating: x.armorRating,
-		})));
-		console.log(`Team 2 wins after ${turnCount} turns!`);
-	}
+	console.log(team1_snapshot.map((x) => ({
+		name: x.name,
+		hp: x.hp,
+		barrierRating: x.barrierRating,
+		armorRating: x.armorRating,
+	})));
 
-	if (team2.length === 0) {
-		console.log(team1_snapshot.map((x) => ({
-			name: x.name,
-			hp: x.hp,
-			barrierRating: x.barrierRating,
-			armorRating: x.armorRating,
-		})));
-		console.log(`Team 1 wins after ${turnCount} turns!`);
-	}
+	console.log(team2_snapshot.map((x) => ({
+		name: x.name,
+		hp: x.hp,
+		barrierRating: x.barrierRating,
+		armorRating: x.armorRating,
+	})));
+
+	if (team2.length === 0) console.log(`Team 1 wins after ${turnCount} turns!`);
+	if (team1.length === 0) console.log(`Team 2 wins after ${turnCount} turns!`);
 }
 
-simulateCombat([Liara, Mira], [Goblin1, Goblin2]);
+simulateCombat({
+	team1: [Liara, Mira],
+	team2: [Goblin1, Goblin2],
+});
