@@ -1,0 +1,35 @@
+{
+	"tasks": {
+		"dev": "deno run --watch main.ts"
+	},
+	"imports": {
+		"fp-try": "jsr:@2or3godzillas/fp-try@^1.2.0",
+		"axios": "npm:axios",
+		"zod": "npm:zod"
+	},
+	"compilerOptions": {
+		"strict": true,
+		"strictNullChecks": true,
+		"noUncheckedIndexedAccess": true,
+		"lib": [
+			"dom",
+			"dom.iterable",
+			"esnext",
+			"deno.ns",
+			"deno.unstable"
+		]
+	},
+	"fmt": {
+		"semiColons": true,
+		"lineWidth": 120,
+		"useTabs": true
+	},
+	"lint": {
+		"rules": {
+			"exclude": [
+				"no-unused-vars",
+				"no-explicit-any"
+			]
+		}
+	}
+}
