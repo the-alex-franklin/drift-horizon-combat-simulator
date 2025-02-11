@@ -1,3 +1,5 @@
+import "./array.ts";
+
 type Stats = {
 	strength: number;
 	constitution: number;
@@ -88,6 +90,42 @@ class Combatant {
 	}
 }
 
+class CombatantWithHeal extends Combatant {
+	heal(targets: Combatant[]): void {
+		for (const target of targets) {
+			target.rest();
+		}
+	}
+}
+
+class CombatantWithFireball extends Combatant {
+	fireball(targets: Combatant[]): Combatant[] {
+		const dead: Combatant[] = [];
+
+		for (const target of targets) {
+			let damage = 3 + this.stats.intellect;
+
+			while (damage > 0) {
+				if (target.hp <= 0) {
+					dead.push(target);
+					break;
+				}
+
+				if (target.barrierRating > 0) {
+					target.barrierRating -= 1;
+					damage -= 1;
+					continue;
+				}
+
+				target.hp -= 1;
+				damage -= 1;
+			}
+		}
+
+		return dead;
+	}
+}
+
 const Liara = new Combatant({
 	name: "Liara",
 	stats: {
@@ -110,7 +148,7 @@ const Liara = new Combatant({
 	},
 });
 
-const Mira = new Combatant({
+const Mira = new CombatantWithHeal({
 	name: "Mira",
 	stats: {
 		strength: 0,
@@ -153,7 +191,7 @@ const Goblin1 = new Combatant({
 	},
 });
 
-const Goblin2 = new Combatant({
+const Goblin2 = new CombatantWithFireball({
 	name: "G0BL-2",
 	stats: {
 		strength: 1,
@@ -175,12 +213,17 @@ const Goblin2 = new Combatant({
 	},
 });
 
-function findWeakestEnemy(enemies: Combatant[], attacker_damage_type: DamageType): [Combatant, number] {
+function findWeakestEnemy(enemies: Combatant[], attacker_damage_type: DamageType): Combatant {
+	if (!enemies.length) throw new Error("No enemies alive!");
+
 	const enemy_hps = enemies.map((enemy) =>
 		enemy.hp + (attacker_damage_type === "physical" ? enemy.armorRating : enemy.barrierRating)
 	);
 	const index = enemy_hps.indexOf(Math.min(...enemy_hps));
-	return [enemies[index]!, index];
+	const enemy = enemies[index];
+	if (!enemy) throw new Error("No enemy found!");
+
+	return enemy;
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -193,41 +236,53 @@ function simulateCombat({ team1, team2 }: { team1: Combatant[]; team2: Combatant
 	let turnCount = 0;
 
 	const randomizedTurnOrder = shuffleArray([...team1, ...team2]);
-	while (team1.length > 0 && team2.length > 0) {
+	outer: while (team1.length && team2.length) {
 		turnCount++;
 		if (turnCount >= 100) throw new Error("Combat not resolving!");
 
 		for (const combatant of randomizedTurnOrder) {
+			if (!team1.length || !team2.length) break outer;
+
 			if (team1.includes(combatant)) {
-				const [target, index] = findWeakestEnemy(team2, combatant.weapon.damageType);
+				if (combatant instanceof CombatantWithHeal) {
+					const allies = team1.filter((ally) => ally !== combatant);
+					const ally_needs_heals = allies.find((ally) => ally.hp < ally.stats.constitution * 5 * 0.5);
+					if (ally_needs_heals) {
+						console.log("Healing allies!");
+						combatant.heal(team1);
+						continue;
+					}
+				}
+
+				const target = findWeakestEnemy(team2, combatant.weapon.damageType);
 				const target_died = combatant.attack(target);
-				if (target_died) team2.splice(index, 1);
+				if (target_died) team2.remove(target);
 			}
 
 			if (team2.includes(combatant)) {
-				const [target, index] = findWeakestEnemy(team1, combatant.weapon.damageType);
+				if (combatant instanceof CombatantWithFireball) {
+					const targets = team1.filter((ally) => ally.hp > 0);
+					const dead = combatant.fireball(targets);
+					for (const dead_enemy of dead) team1.remove(dead_enemy);
+					continue;
+				}
+
+				const target = findWeakestEnemy(team1, combatant.weapon.damageType);
 				const target_died = combatant.attack(target);
-				if (target_died) team1.splice(index, 1);
+				if (target_died) team1.remove(target);
 			}
 		}
 	}
 
-	console.log(team1_snapshot.map((x) => ({
+	console.log([...team1_snapshot, ...team2_snapshot].map((x) => ({
 		name: x.name,
 		hp: x.hp,
 		barrierRating: x.barrierRating,
 		armorRating: x.armorRating,
 	})));
 
-	console.log(team2_snapshot.map((x) => ({
-		name: x.name,
-		hp: x.hp,
-		barrierRating: x.barrierRating,
-		armorRating: x.armorRating,
-	})));
-
-	if (team2.length === 0) console.log(`Team 1 wins after ${turnCount} turns!`);
-	if (team1.length === 0) console.log(`Team 2 wins after ${turnCount} turns!`);
+	if (!team2.length) console.log(`Team 1 wins after ${turnCount} turns!`);
+	if (!team1.length) console.log(`Team 2 wins after ${turnCount} turns!`);
 }
 
 simulateCombat({
